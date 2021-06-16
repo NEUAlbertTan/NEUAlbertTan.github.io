@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="AlbertTan">
+
+
+    <meta name="subtitle" content="Hi there! This is Albert Tan">
+
+
+
+
+<title>SimGNN——关于图的相似性计算 | AlbertTan</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/./css/style.css">
+    
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/./js/script.js"></script>
+    
+    <script src="/./js/tocbot.min.js"></script>
+    
+
+
+
+    
+    
+        
+    
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body>
+    <div class="wrapper">
+        <header>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-header header-logo"><a href="/">AlbertTan&#39;s Blog</a></div>
+            <div class="menu navbar-right">
+                
+                    <a class="menu-item" href="/archives">Posts</a>
+                
+                    <a class="menu-item" href="/category">Categories</a>
+                
+                    <a class="menu-item" href="/tag">Tags</a>
+                
+                    <a class="menu-item" href="/about">About</a>
+                
+                <input id="switch_default" type="checkbox" class="switch_default">
+                <label for="switch_default" class="toggleBtn"></label>
+            </div>
+        </div>
+    </nav>
+
+    
+    <nav class="navbar-mobile" id="nav-mobile">
+        <div class="container">
+            <div class="navbar-header">
+                <div>
+                    <a href="/">AlbertTan&#39;s Blog</a><a id="mobile-toggle-theme">·&nbsp;Light</a>
+                </div>
+                <div class="menu-toggle" onclick="mobileBtn()">&#9776; Menu</div>
+            </div>
+            <div class="menu" id="mobile-menu">
+                
+                    <a class="menu-item" href="/archives">Posts</a>
+                
+                    <a class="menu-item" href="/category">Categories</a>
+                
+                    <a class="menu-item" href="/tag">Tags</a>
+                
+                    <a class="menu-item" href="/about">About</a>
+                
+            </div>
+        </div>
+    </nav>
+
+</header>
+<script>
+    var mobileBtn = function f() {
+        var toggleMenu = document.getElementsByClassName("menu-toggle")[0];
+        var mobileMenu = document.getElementById("mobile-menu");
+        if(toggleMenu.classList.contains("active")){
+           toggleMenu.classList.remove("active")
+            mobileMenu.classList.remove("active")
+        }else{
+            toggleMenu.classList.add("active")
+            mobileMenu.classList.add("active")
+        }
+    }
+</script>
+        <div class="main">
+            <div class="container">
+    
+    
+        <div class="post-toc">
+    <div class="tocbot-list">
+    </div>
+    <div class="tocbot-list-menu">
+        <a class="tocbot-toc-expand" onclick="expand_toc()">Expand all</a>
+        <a onclick="go_top()">Back to top</a>
+        <a onclick="go_bottom()">Go to bottom</a>
+    </div>
+</div>
+
+<script>
+    document.ready(
+        function () {
+            tocbot.init({
+                tocSelector: '.tocbot-list',
+                contentSelector: '.post-content',
+                headingSelector: 'h1, h2, h3, h4, h5',
+                collapseDepth: 1,
+                orderedList: false,
+                scrollSmooth: true,
+            })
+        }
+    )
+
+    function expand_toc() {
+        var b = document.querySelector(".tocbot-toc-expand");
+        tocbot.init({
+            tocSelector: '.tocbot-list',
+            contentSelector: '.post-content',
+            headingSelector: 'h1, h2, h3, h4, h5',
+            collapseDepth: 6,
+            orderedList: false,
+            scrollSmooth: true,
+        });
+        b.setAttribute("onclick", "collapse_toc()");
+        b.innerHTML = "Collapse all"
+    }
+
+    function collapse_toc() {
+        var b = document.querySelector(".tocbot-toc-expand");
+        tocbot.init({
+            tocSelector: '.tocbot-list',
+            contentSelector: '.post-content',
+            headingSelector: 'h1, h2, h3, h4, h5',
+            collapseDepth: 1,
+            orderedList: false,
+            scrollSmooth: true,
+        });
+        b.setAttribute("onclick", "expand_toc()");
+        b.innerHTML = "Expand all"
+    }
+
+    function go_top() {
+        window.scrollTo(0, 0);
+    }
+
+    function go_bottom() {
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+</script>
+    
+
+    
+    <article class="post-wrap">
+        <header class="post-header">
+            <h1 class="post-title">SimGNN——关于图的相似性计算</h1>
+            
+                <div class="post-meta">
+                    
+                        Author: <a itemprop="author" rel="author" href="/">AlbertTan</a>
+                    
+
+                    
+                        <span class="post-time">
+                        Date: <a href="#">June 17, 2021&nbsp;&nbsp;0:49:34</a>
+                        </span>
+                    
+                    
+                </div>
+            
+        </header>
+
+        <div class="post-content">
+            <h5 id="忙完了各种各样的考试，我终于开始了我的科研之路。在这里特别感谢东北大学曹鹏老师给了我这个机会。"><a href="#忙完了各种各样的考试，我终于开始了我的科研之路。在这里特别感谢东北大学曹鹏老师给了我这个机会。" class="headerlink" title="忙完了各种各样的考试，我终于开始了我的科研之路。在这里特别感谢东北大学曹鹏老师给了我这个机会。"></a>忙完了各种各样的考试，我终于开始了我的科研之路。在这里特别感谢东北大学曹鹏老师给了我这个机会。</h5><hr>
+<h6 id="（还不太会在博客中用公式编辑，估计和Latex格式差不多，等有时间学会了之后再把公式补上。）"><a href="#（还不太会在博客中用公式编辑，估计和Latex格式差不多，等有时间学会了之后再把公式补上。）" class="headerlink" title="（还不太会在博客中用公式编辑，估计和Latex格式差不多，等有时间学会了之后再把公式补上。）"></a>（还不太会在博客中用公式编辑，估计和Latex格式差不多，等有时间学会了之后再把公式补上。）</h6><hr>
+<h2 id="背景介绍"><a href="#背景介绍" class="headerlink" title="背景介绍"></a>背景介绍</h2><h4 id="我目前的课题是关于图神经网络的研究，我在课题组中负责图相似性计算，简单的说，就是输入两个图，输出它们的相似程度。其实在数学上对于这个问题是有着精确解的，一般用到的是图编辑距离（Graph-Edit-Distance-GED-，有时间我会单独写一篇博客来介绍。"><a href="#我目前的课题是关于图神经网络的研究，我在课题组中负责图相似性计算，简单的说，就是输入两个图，输出它们的相似程度。其实在数学上对于这个问题是有着精确解的，一般用到的是图编辑距离（Graph-Edit-Distance-GED-，有时间我会单独写一篇博客来介绍。" class="headerlink" title="我目前的课题是关于图神经网络的研究，我在课题组中负责图相似性计算，简单的说，就是输入两个图，输出它们的相似程度。其实在数学上对于这个问题是有着精确解的，一般用到的是图编辑距离（Graph-Edit-Distance, GED)，有时间我会单独写一篇博客来介绍。"></a>我目前的课题是关于图神经网络的研究，我在课题组中负责图相似性计算，简单的说，就是输入两个图，输出它们的相似程度。其实在数学上对于这个问题是有着精确解的，一般用到的是图编辑距离（Graph-Edit-Distance, GED)，有时间我会单独写一篇博客来介绍。</h4><h4 id="可是这种方法的求解时间复杂度是指数时间，并且被证明了是NP-Complete，因此在工程上想要采用这种方法是不太可能的了，于是对于图相似性的近似精确度量便登上了舞台。在纯算法方面，主要有Hungarian和-VJ，但是它们的复杂度均是O-n-3-，也不够理想。而我们这篇文章提出的SimGNN模型将复杂度降到了O-c-n-2-，其中c是一个超参，并且保持了优秀的准确性。"><a href="#可是这种方法的求解时间复杂度是指数时间，并且被证明了是NP-Complete，因此在工程上想要采用这种方法是不太可能的了，于是对于图相似性的近似精确度量便登上了舞台。在纯算法方面，主要有Hungarian和-VJ，但是它们的复杂度均是O-n-3-，也不够理想。而我们这篇文章提出的SimGNN模型将复杂度降到了O-c-n-2-，其中c是一个超参，并且保持了优秀的准确性。" class="headerlink" title="可是这种方法的求解时间复杂度是指数时间，并且被证明了是NP-Complete，因此在工程上想要采用这种方法是不太可能的了，于是对于图相似性的近似精确度量便登上了舞台。在纯算法方面，主要有Hungarian和 VJ，但是它们的复杂度均是O(n^3)，也不够理想。而我们这篇文章提出的SimGNN模型将复杂度降到了O(c * n^2)，其中c是一个超参，并且保持了优秀的准确性。"></a>可是这种方法的求解时间复杂度是指数时间，并且被证明了是NP-Complete，因此在工程上想要采用这种方法是不太可能的了，于是对于图相似性的近似精确度量便登上了舞台。在纯算法方面，主要有Hungarian和 VJ，但是它们的复杂度均是O(n^3)，也不够理想。而我们这篇文章提出的SimGNN模型将复杂度降到了O(c * n^2)，其中c是一个超参，并且保持了优秀的准确性。</h4><hr>
+<h2 id="模型详解"><a href="#模型详解" class="headerlink" title="模型详解"></a>模型详解</h2><h3 id="模型准则"><a href="#模型准则" class="headerlink" title="模型准则"></a>模型准则</h3><ul>
+<li>表征不变性(Representation-invariant)<h4 id="因为在一个图结构中，每个结点-的位置都是相对的，因此一个图的表示不应该受节点编号顺序而改变，也就是在图结构不变的情况下，不论其邻接矩阵怎么改变顺序，图的表示都不应该变化。"><a href="#因为在一个图结构中，每个结点-的位置都是相对的，因此一个图的表示不应该受节点编号顺序而改变，也就是在图结构不变的情况下，不论其邻接矩阵怎么改变顺序，图的表示都不应该变化。" class="headerlink" title="因为在一个图结构中，每个结点*的位置都是相对的，因此一个图的表示不应该受节点编号顺序而改变，也就是在图结构不变的情况下，不论其邻接矩阵怎么改变顺序，图的表示都不应该变化。"></a>因为在一个图结构中，每个结点*的位置都是相对的，因此一个图的表示不应该受节点编号顺序而改变，也就是在图结构不变的情况下，不论其邻接矩阵怎么改变顺序，图的表示都不应该变化。</h4><h6 id="关于”结点“和”节点“，私以为node更应该翻译为”结点“，而与节点更对应的是joint。https-wenku-baidu-com-view-95a5882027d3240c8547ef13-html"><a href="#关于”结点“和”节点“，私以为node更应该翻译为”结点“，而与节点更对应的是joint。https-wenku-baidu-com-view-95a5882027d3240c8547ef13-html" class="headerlink" title="*关于”结点“和”节点“，私以为node更应该翻译为”结点“，而与节点更对应的是joint。https://wenku.baidu.com/view/95a5882027d3240c8547ef13.html"></a>*关于”结点“和”节点“，私以为node更应该翻译为”结点“，而与节点更对应的是joint。<a target="_blank" rel="noopener" href="https://wenku.baidu.com/view/95a5882027d3240c8547ef13.html">https://wenku.baidu.com/view/95a5882027d3240c8547ef13.html</a></h6></li>
+<li>归纳性(Inductive)<h4 id="作为一个在训练集上练出来的模型，当然需要获得泛化能力以在测试集上有泛化效果。"><a href="#作为一个在训练集上练出来的模型，当然需要获得泛化能力以在测试集上有泛化效果。" class="headerlink" title="作为一个在训练集上练出来的模型，当然需要获得泛化能力以在测试集上有泛化效果。"></a>作为一个在训练集上练出来的模型，当然需要获得泛化能力以在测试集上有泛化效果。</h4></li>
+<li>可学习(Learnable)<h4 id="同上，模型要通过其中的参数学习到泛化能力，正所谓“机器学习”"><a href="#同上，模型要通过其中的参数学习到泛化能力，正所谓“机器学习”" class="headerlink" title="同上，模型要通过其中的参数学习到泛化能力，正所谓“机器学习”"></a>同上，模型要通过其中的参数学习到泛化能力，正所谓“机器学习”</h4></li>
+</ul>
+<h3 id="概念介绍"><a href="#概念介绍" class="headerlink" title="概念介绍"></a>概念介绍</h3><h4 id="文章首先介绍了几个概念：首先是GED，简单地说，将一个图“编辑”为另一个图，最少需要几步？（让我想起了把大项装进冰箱）在这个地方，一条边的添加-删除或重新标记一个结点都被称为一次编辑。"><a href="#文章首先介绍了几个概念：首先是GED，简单地说，将一个图“编辑”为另一个图，最少需要几步？（让我想起了把大项装进冰箱）在这个地方，一条边的添加-删除或重新标记一个结点都被称为一次编辑。" class="headerlink" title="文章首先介绍了几个概念：首先是GED，简单地说，将一个图“编辑”为另一个图，最少需要几步？（让我想起了把大项装进冰箱）在这个地方，一条边的添加/删除或重新标记一个结点都被称为一次编辑。"></a>文章首先介绍了几个概念：首先是GED，简单地说，将一个图“编辑”为另一个图，最少需要几步？（让我想起了把大项装进冰箱）在这个地方，一条边的添加/删除或重新标记一个结点都被称为一次编辑。</h4><h4 id="然后是GCN，即图卷积神经网络。虽然我自认为数学功底还不错，但是真正生吃GCN的那些数学公式的时候，多少还是感觉有些吃力，这个地方极我推荐一篇好文，用热流动来讲解GCN的推导https-www-zhihu-com-question-54504471-answer-630639025"><a href="#然后是GCN，即图卷积神经网络。虽然我自认为数学功底还不错，但是真正生吃GCN的那些数学公式的时候，多少还是感觉有些吃力，这个地方极我推荐一篇好文，用热流动来讲解GCN的推导https-www-zhihu-com-question-54504471-answer-630639025" class="headerlink" title="然后是GCN，即图卷积神经网络。虽然我自认为数学功底还不错，但是真正生吃GCN的那些数学公式的时候，多少还是感觉有些吃力，这个地方极我推荐一篇好文，用热流动来讲解GCN的推导https://www.zhihu.com/question/54504471/answer/630639025"></a>然后是GCN，即图卷积神经网络。虽然我自认为数学功底还不错，但是真正生吃GCN的那些数学公式的时候，多少还是感觉有些吃力，这个地方极我推荐一篇好文，用热流动来讲解GCN的推导<a target="_blank" rel="noopener" href="https://www.zhihu.com/question/54504471/answer/630639025">https://www.zhihu.com/question/54504471/answer/630639025</a></h4><h3 id="模型阐述"><a href="#模型阐述" class="headerlink" title="模型阐述"></a>模型阐述</h3><h4 id="文章定义的模型流程主要分为这几步：1-提取单个结点特征；2-1-用第一步的特征做graph-level-embedding；2-2-用第一步的特征做node-level的，pairwise的特征处理；3-将第二步的结果放到MLP中拟合最终相似度。"><a href="#文章定义的模型流程主要分为这几步：1-提取单个结点特征；2-1-用第一步的特征做graph-level-embedding；2-2-用第一步的特征做node-level的，pairwise的特征处理；3-将第二步的结果放到MLP中拟合最终相似度。" class="headerlink" title="文章定义的模型流程主要分为这几步：1)提取单个结点特征；2.1)用第一步的特征做graph-level embedding；2.2)用第一步的特征做node-level的，pairwise的特征处理；3)将第二步的结果放到MLP中拟合最终相似度。"></a>文章定义的模型流程主要分为这几步：1)提取单个结点特征；2.1)用第一步的特征做graph-level embedding；2.2)用第一步的特征做node-level的，pairwise的特征处理；3)将第二步的结果放到MLP中拟合最终相似度。</h4><h4 id="graph-level-embedding"><a href="#graph-level-embedding" class="headerlink" title="graph-level embedding"></a>graph-level embedding</h4><h4 id="模型第一步采用了多层GCN来提取node-embedding，而这一步的graph-level-embedding就是基于此提炼出来的。相比于其他模型的直接求和、求平均，该模型在此处添加了一个attention层，用于判断哪个结点在这个图中“更重要”。直觉地说，度数更高的结点应该会有更高的权重，而在这个模型中，作者用了一个可学习的权重矩阵进行了优化。在这里作者选择了将加权平均计算后的矩阵作归一化-tanh-，而不是直接将权值归一化。作者表示："><a href="#模型第一步采用了多层GCN来提取node-embedding，而这一步的graph-level-embedding就是基于此提炼出来的。相比于其他模型的直接求和、求平均，该模型在此处添加了一个attention层，用于判断哪个结点在这个图中“更重要”。直觉地说，度数更高的结点应该会有更高的权重，而在这个模型中，作者用了一个可学习的权重矩阵进行了优化。在这里作者选择了将加权平均计算后的矩阵作归一化-tanh-，而不是直接将权值归一化。作者表示：" class="headerlink" title="模型第一步采用了多层GCN来提取node embedding，而这一步的graph-level embedding就是基于此提炼出来的。相比于其他模型的直接求和、求平均，该模型在此处添加了一个attention层，用于判断哪个结点在这个图中“更重要”。直觉地说，度数更高的结点应该会有更高的权重，而在这个模型中，作者用了一个可学习的权重矩阵进行了优化。在这里作者选择了将加权平均计算后的矩阵作归一化(tanh)，而不是直接将权值归一化。作者表示："></a>模型第一步采用了多层GCN来提取node embedding，而这一步的graph-level embedding就是基于此提炼出来的。相比于其他模型的直接求和、求平均，该模型在此处添加了一个attention层，用于判断哪个结点在这个图中“更重要”。直觉地说，度数更高的结点应该会有更高的权重，而在这个模型中，作者用了一个可学习的权重矩阵进行了优化。在这里作者选择了将加权平均计算后的矩阵作归一化(tanh)，而不是直接将权值归一化。作者表示：</h4><blockquote>
+<p>it is desirable to let the embedding norm reflect the graph size.</p>
+</blockquote>
+<h4 id="随后，图的embedding就可以通过对node-embedding加权求和再归一化的方式得到了。"><a href="#随后，图的embedding就可以通过对node-embedding加权求和再归一化的方式得到了。" class="headerlink" title="随后，图的embedding就可以通过对node embedding加权求和再归一化的方式得到了。"></a>随后，图的embedding就可以通过对node embedding加权求和再归一化的方式得到了。</h4><h4 id="在得到了图的embedding之后，剩下关键的一步便是如何通过两个图的embedding输出两个图的相似程度了。作者先是表示了对直接将两个向量做内积的方法表示了否认，说这会让两个图的interaction变弱或者是不足。那怎么办呢？还能怎么办，扔到神经网络里边去练就行了。可能这就是工科和理科的距离。作者在此用的是NTN，公式也是类似的-g-activate-x-w-b-的形式-作者在此处用的是g-hi-hj-activate-hi-W-hj-V-b-，不过这个地方作者定义了一个参数K，用于学习多个维度的特征，这就让我想起了我读的第二篇论文-Multi-level-Graph-Matching…-。"><a href="#在得到了图的embedding之后，剩下关键的一步便是如何通过两个图的embedding输出两个图的相似程度了。作者先是表示了对直接将两个向量做内积的方法表示了否认，说这会让两个图的interaction变弱或者是不足。那怎么办呢？还能怎么办，扔到神经网络里边去练就行了。可能这就是工科和理科的距离。作者在此用的是NTN，公式也是类似的-g-activate-x-w-b-的形式-作者在此处用的是g-hi-hj-activate-hi-W-hj-V-b-，不过这个地方作者定义了一个参数K，用于学习多个维度的特征，这就让我想起了我读的第二篇论文-Multi-level-Graph-Matching…-。" class="headerlink" title="在得到了图的embedding之后，剩下关键的一步便是如何通过两个图的embedding输出两个图的相似程度了。作者先是表示了对直接将两个向量做内积的方法表示了否认，说这会让两个图的interaction变弱或者是不足。那怎么办呢？还能怎么办，扔到神经网络里边去练就行了。可能这就是工科和理科的距离。作者在此用的是NTN，公式也是类似的 g = activate(x * w + b)的形式(作者在此处用的是g(hi, hj) = activate(hi * W * hj + V + b))，不过这个地方作者定义了一个参数K，用于学习多个维度的特征，这就让我想起了我读的第二篇论文(Multi-level Graph Matching…)。"></a>在得到了图的embedding之后，剩下关键的一步便是如何通过两个图的embedding输出两个图的相似程度了。作者先是表示了对直接将两个向量做内积的方法表示了否认，说这会让两个图的interaction变弱或者是不足。那怎么办呢？还能怎么办，扔到神经网络里边去练就行了。可能这就是工科和理科的距离。作者在此用的是NTN，公式也是类似的 g = activate(x * w + b)的形式(作者在此处用的是g(hi, hj) = activate(hi * W * hj + V + b))，不过这个地方作者定义了一个参数K，用于学习多个维度的特征，这就让我想起了我读的第二篇论文(Multi-level Graph Matching…)。</h4><h4 id="接下来，顺理成章地，便是通过预测值与真实值求出loss，作者在此处用的是MSE-即均方误差，Mean-Square-Error"><a href="#接下来，顺理成章地，便是通过预测值与真实值求出loss，作者在此处用的是MSE-即均方误差，Mean-Square-Error" class="headerlink" title="接下来，顺理成章地，便是通过预测值与真实值求出loss，作者在此处用的是MSE, 即均方误差，Mean-Square-Error."></a>接下来，顺理成章地，便是通过预测值与真实值求出loss，作者在此处用的是MSE, 即均方误差，Mean-Square-Error.</h4><h4 id="在该part的结尾，作者提到了其缺陷：对于graph-level的特征处理是一种coarse-grained的处理，即比较粗犷，因此需要对应的fine-grained-information，作者以此引出了第二点，pairwise-node-comparison"><a href="#在该part的结尾，作者提到了其缺陷：对于graph-level的特征处理是一种coarse-grained的处理，即比较粗犷，因此需要对应的fine-grained-information，作者以此引出了第二点，pairwise-node-comparison" class="headerlink" title="在该part的结尾，作者提到了其缺陷：对于graph-level的特征处理是一种coarse-grained的处理，即比较粗犷，因此需要对应的fine-grained information，作者以此引出了第二点，pairwise node comparison."></a>在该part的结尾，作者提到了其缺陷：对于graph-level的特征处理是一种coarse-grained的处理，即比较粗犷，因此需要对应的fine-grained information，作者以此引出了第二点，pairwise node comparison.</h4><h4 id="node-level-pairwise-node-comparison"><a href="#node-level-pairwise-node-comparison" class="headerlink" title="node-level: pairwise node comparison"></a>node-level: pairwise node comparison</h4><h4 id="简单来说，该部分就是对两个图中的每一对结点进行采样，得到矩阵S，即对每对node-embedding相乘后做归一化（因为node-embedding本身没有被归一化）。鉴于两个图大小不一定一样，该模型对更小的图填充了一些fake-nodes，在embedding表示中便是zero-embedding。为了得到向量化的表示-vec-S-，作者先是否定了直接将其扔到全连接层中（这个作者很喜欢先否性一个做法，然后提出自己的做法。这样可以很方便地表示出自己的模型因为在哪个地方提出了什么而具有优势），因为不同的初始化节点编号会导致产生不同的S和vec-s-，这违背了模型准则1（为什么呢？这值得深入思考一下）"><a href="#简单来说，该部分就是对两个图中的每一对结点进行采样，得到矩阵S，即对每对node-embedding相乘后做归一化（因为node-embedding本身没有被归一化）。鉴于两个图大小不一定一样，该模型对更小的图填充了一些fake-nodes，在embedding表示中便是zero-embedding。为了得到向量化的表示-vec-S-，作者先是否定了直接将其扔到全连接层中（这个作者很喜欢先否性一个做法，然后提出自己的做法。这样可以很方便地表示出自己的模型因为在哪个地方提出了什么而具有优势），因为不同的初始化节点编号会导致产生不同的S和vec-s-，这违背了模型准则1（为什么呢？这值得深入思考一下）" class="headerlink" title="简单来说，该部分就是对两个图中的每一对结点进行采样，得到矩阵S，即对每对node embedding相乘后做归一化（因为node embedding本身没有被归一化）。鉴于两个图大小不一定一样，该模型对更小的图填充了一些fake nodes，在embedding表示中便是zero embedding。为了得到向量化的表示(vec(S))，作者先是否定了直接将其扔到全连接层中（这个作者很喜欢先否性一个做法，然后提出自己的做法。这样可以很方便地表示出自己的模型因为在哪个地方提出了什么而具有优势），因为不同的初始化节点编号会导致产生不同的S和vec(s)，这违背了模型准则1（为什么呢？这值得深入思考一下）"></a>简单来说，该部分就是对两个图中的每一对结点进行采样，得到矩阵S，即对每对node embedding相乘后做归一化（因为node embedding本身没有被归一化）。鉴于两个图大小不一定一样，该模型对更小的图填充了一些fake nodes，在embedding表示中便是zero embedding。为了得到向量化的表示(vec(S))，作者先是否定了直接将其扔到全连接层中（这个作者很喜欢先否性一个做法，然后提出自己的做法。这样可以很方便地表示出自己的模型因为在哪个地方提出了什么而具有优势），因为不同的初始化节点编号会导致产生不同的S和vec(s)，这违背了模型准则1（为什么呢？这值得深入思考一下）</h4><h4 id="作者提出，用一个直方图-histogram-保存S的信息，这样就可以把二维的S转化为一维的直方图数据。其中，直方图的大小B也是一个超参，同样地这也是约束模型复杂度的一个重要参数。"><a href="#作者提出，用一个直方图-histogram-保存S的信息，这样就可以把二维的S转化为一维的直方图数据。其中，直方图的大小B也是一个超参，同样地这也是约束模型复杂度的一个重要参数。" class="headerlink" title="作者提出，用一个直方图(histogram)保存S的信息，这样就可以把二维的S转化为一维的直方图数据。其中，直方图的大小B也是一个超参，同样地这也是约束模型复杂度的一个重要参数。"></a>作者提出，用一个直方图(histogram)保存S的信息，这样就可以把二维的S转化为一维的直方图数据。其中，直方图的大小B也是一个超参，同样地这也是约束模型复杂度的一个重要参数。</h4><h4 id="后面的过程就简单啦，把两个模型算出来的向量做一个连接，然后扔到全连接层中，最终计算得出相关相似度。"><a href="#后面的过程就简单啦，把两个模型算出来的向量做一个连接，然后扔到全连接层中，最终计算得出相关相似度。" class="headerlink" title="后面的过程就简单啦，把两个模型算出来的向量做一个连接，然后扔到全连接层中，最终计算得出相关相似度。"></a>后面的过程就简单啦，把两个模型算出来的向量做一个连接，然后扔到全连接层中，最终计算得出相关相似度。</h4><h3 id="模型复杂度"><a href="#模型复杂度" class="headerlink" title="模型复杂度"></a>模型复杂度</h3><h4 id="该模型的计算主要在这几个部分："><a href="#该模型的计算主要在这几个部分：" class="headerlink" title="该模型的计算主要在这几个部分："></a>该模型的计算主要在这几个部分：</h4><ul>
+<li>node embedding与global embedding计算，复杂度是O(E)，是图的边数的线性关系。</li>
+<li>graph-level processing: O(D^2 * K)，D是embedding长度，K是超参数，定义在通过两个图得出的embedding来计算其相似度的过程中。</li>
+<li>pairwise node comparison: O(D * N^2)，因为要对每一对点进行运算，自然就把复杂度增加到了N^2。<h4 id="有意思的是，作者在做复杂度分析时，刚提出，加入了pairwise这一步没有怎么增加运算时间"><a href="#有意思的是，作者在做复杂度分析时，刚提出，加入了pairwise这一步没有怎么增加运算时间" class="headerlink" title="有意思的是，作者在做复杂度分析时，刚提出，加入了pairwise这一步没有怎么增加运算时间"></a>有意思的是，作者在做复杂度分析时，刚提出，加入了pairwise这一步没有怎么增加运算时间</h4><blockquote>
+<p> there is no significant runtime increase when the second strategy is used.</p>
+</blockquote>
+<h4 id="后一秒便说："><a href="#后一秒便说：" class="headerlink" title="后一秒便说："></a>后一秒便说：</h4><blockquote>
+<p> Strategy 2 is auxiliary, which includes fine-grained node-level information but is more time-consuming.</p>
+</blockquote>
+<h4 id="确实值得细细品味。"><a href="#确实值得细细品味。" class="headerlink" title="确实值得细细品味。"></a>确实值得细细品味。</h4></li>
+</ul>
+<h2 id="实验部分"><a href="#实验部分" class="headerlink" title="实验部分"></a>实验部分</h2><h4 id="首先给出源码链接：https-github-com-yunshengb-SimGNN"><a href="#首先给出源码链接：https-github-com-yunshengb-SimGNN" class="headerlink" title="首先给出源码链接：https://github.com/yunshengb/SimGNN"></a>首先给出源码链接：<a target="_blank" rel="noopener" href="https://github.com/yunshengb/SimGNN">https://github.com/yunshengb/SimGNN</a></h4><h4 id="这份源码中附带了数据集。"><a href="#这份源码中附带了数据集。" class="headerlink" title="这份源码中附带了数据集。"></a>这份源码中附带了数据集。</h4><h4 id="不过我更喜欢这份源码：https-github-com-benedekrozemberczki-SimGNN"><a href="#不过我更喜欢这份源码：https-github-com-benedekrozemberczki-SimGNN" class="headerlink" title="不过我更喜欢这份源码：https://github.com/benedekrozemberczki/SimGNN"></a>不过我更喜欢这份源码：<a target="_blank" rel="noopener" href="https://github.com/benedekrozemberczki/SimGNN">https://github.com/benedekrozemberczki/SimGNN</a></h4><h4 id="注意的是，对于AIDS和LINUX数据集，由于点的数量一般都比较少，在做训练的时候ground-truth可以A-算法计算准确的GED，但是IMDB数据集每个数据都较大，只能通过Beam、Hungarian、VJ等近似算法计算出结果后，去其中最小值作为ground-truth"><a href="#注意的是，对于AIDS和LINUX数据集，由于点的数量一般都比较少，在做训练的时候ground-truth可以A-算法计算准确的GED，但是IMDB数据集每个数据都较大，只能通过Beam、Hungarian、VJ等近似算法计算出结果后，去其中最小值作为ground-truth" class="headerlink" title="注意的是，对于AIDS和LINUX数据集，由于点的数量一般都比较少，在做训练的时候ground_truth可以A*算法计算准确的GED，但是IMDB数据集每个数据都较大，只能通过Beam、Hungarian、VJ等近似算法计算出结果后，去其中最小值作为ground_truth."></a>注意的是，对于AIDS和LINUX数据集，由于点的数量一般都比较少，在做训练的时候ground_truth可以A*算法计算准确的GED，但是IMDB数据集每个数据都较大，只能通过Beam、Hungarian、VJ等近似算法计算出结果后，去其中最小值作为ground_truth.</h4><h2 id="模型缺陷："><a href="#模型缺陷：" class="headerlink" title="模型缺陷："></a>模型缺陷：</h2><h4 id="该模型主要缺点在于："><a href="#该模型主要缺点在于：" class="headerlink" title="该模型主要缺点在于："></a>该模型主要缺点在于：</h4><ul>
+<li>只照顾到了点的特性，没有考虑边的特征，如化学键</li>
+<li>对于前k个匹配结果的拟合程度不够理想</li>
+</ul>
+
+        </div>
+
+        
+            <section class="post-copyright">
+                
+                    <p class="copyright-item">
+                        <span>Author:</span>
+                        <span>AlbertTan</span>
+                    </p>
+                
+                
+                
+                
+
+            </section>
+        
+        <section class="post-tags">
+            <div>
+                <span>Tag(s):</span>
+                <span class="tag">
+                    
+                    
+                        <a href="/tags/GNN-%E8%AE%BA%E6%96%87%E6%80%BB%E7%BB%93/"># GNN, 论文总结</a>
+                    
+                        
+                </span>
+            </div>
+            <div>
+                <a href="javascript:window.history.back();">back</a>
+                <span>· </span>
+                <a href="/">home</a>
+            </div>
+        </section>
+        <section class="post-nav">
+            
+            
+            <a class="next" rel="next" href="/2021/05/26/test/">test</a>
+            
+        </section>
+
+
+    </article>
+</div>
+
+        </div>
+        <footer id="footer" class="footer">
+    <div class="copyright">
+        <span>© AlbertTan | Powered by <a href="https://hexo.io" target="_blank">Hexo</a> & <a href="https://github.com/Siricee/hexo-theme-Chic" target="_blank">Chic</a></span>
+    </div>
+</footer>
+
+    </div>
+</body>
+</html>
